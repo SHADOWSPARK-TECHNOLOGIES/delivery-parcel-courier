@@ -1,0 +1,117 @@
+// ShadowSpark Courier — parcel & courier data model.
+// PostgreSQL (Neon-compatible). `DATABASE_URL` is required only for
+// generate/migrate/seed; the Next.js build never connects to a database.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id        String    @id
+  name      String
+  phone     String
+  email     String
+  address   String?
+  shipments Shipment[]
+  invoices  Invoice[]
+
+  @@index([email])
+}
+
+model Shipment {
+  id              String    @id @default(cuid())
+  trackingId      String    @unique
+  status          String
+  service         String
+  itemType        String
+  itemValueNgn    Int
+  weightKg        Float
+  fragile         Boolean   @default(false)
+  senderName      String
+  senderPhone     String
+  recipientName   String
+  recipientPhone  String
+  pickupZone      String
+  pickupStreet    String
+  dropoffZone     String
+  dropoffStreet   String
+  etaMinutes      Int
+  priceNgn        Int
+  driverId        String?
+  driver          Driver?   @relation(fields: [driverId], references: [id])
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  createdAt       DateTime  @default(now())
+
+  @@index([customerId])
+  @@index([driverId])
+  @@index([status])
+}
+
+model Driver {
+  id         String      @id
+  name       String
+  phone      String
+  vehicle    String
+  plate      String
+  rating     Float       @default(0)
+  trips      Int         @default(0)
+  zone       String
+  status     String
+  earningsNgn Int        @default(0)
+  shipments  Shipment[]
+
+  @@index([zone])
+}
+
+model Zone {
+  id                 String  @id
+  name               String
+  city               String
+  code               String
+  coverageMultiplier Float   @default(1)
+
+  @@index([city])
+}
+
+model PricingRule {
+  id                 String  @id @default(cuid())
+  city               String
+  baseNgn            Int
+  urgency            String
+  multiplier         Float
+  minutesPerKm       Float
+  pricePerKgNgn      Int
+  fragileSurchargeNgn Int
+
+  @@index([city])
+}
+
+model Ticket {
+  id          String   @id
+  trackingId  String
+  type        String
+  severity    String
+  summary     String
+  status      String
+  createdAt   DateTime @default(now())
+
+  @@index([trackingId])
+}
+
+model Invoice {
+  id         String   @id
+  trackingId String
+  amountNgn  Int
+  status     String
+  issued     String
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+}
